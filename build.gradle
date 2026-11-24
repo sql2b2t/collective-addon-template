@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.17.21'
+    id 'net.fabricmc.fabric-loom-remap' version '1.18.4'
     id 'java'
 }
 
@@ -14,19 +14,25 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:1.21.11"
-    mappings "net.fabricmc:yarn:1.21.11+build.6:v2"
+    mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:0.19.5"
 
-    // Collective Client API dependency
+    // API клиента. Собери клиент (./gradlew build в репозитории клиента)
+    // и скопируй build/devlibs/collective-*-dev.jar в libs/collective-dev.jar
     compileOnly files("libs/collective-dev.jar")
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.encoding = 'UTF-8'
-    it.options.release = 21
+    options.encoding = 'UTF-8'
+    options.release = 21
+    options.compilerArgs += ['-proc:none']
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
 }
