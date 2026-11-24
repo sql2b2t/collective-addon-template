@@ -1,27 +1,29 @@
 package com.example.addon;
 
-import me.collective.addon.CollectiveAddon;
 import me.collective.addon.AddonInfo;
+import me.collective.addon.CollectiveAddon;
 
+// Имя, версия, автор и описание берутся из этой аннотации.
 @AddonInfo(
     name = "Example Addon",
     version = "1.0.0",
-    author = "anvres56",
-    description = "A reference addon demonstrating custom modules, commands, and events for Collective Client.",
-    website = "https://github.com/anvres56/collective-addon-template"
+    author = "YourName",
+    description = "Пример аддона для Collective Client",
+    website = "https://github.com/sql2b2t/collective-addon-template"
 )
 public class ExampleAddon extends CollectiveAddon {
 
     @Override
     public void onInitialize() {
-        System.out.println("[ExampleAddon] Initializing Example Addon for Collective Client...");
-
-        // Register custom modules
         registerModule(new CustomAddonModule());
-
-        // Register custom commands
         registerCommand(new CustomAddonCommand());
+        System.out.println("[ExampleAddon] загружен");
+    }
 
-        System.out.println("[ExampleAddon] Successfully loaded modules and commands!");
+    @Override
+    public void onShutdown() {
+        System.out.println("[ExampleAddon] выгружен");
+        // снимает модули, команды и подписки, сделанные через registerModule/registerCommand/subscribeEvents
+        super.onShutdown();
     }
 }

@@ -1,19 +1,39 @@
 package com.example.addon;
 
-import me.collective.command.ChatHelper;
-import me.collective.command.Command;
-import net.minecraft.text.Text;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import me.collective.client.commands.Command;
+import me.collective.client.utils.chat.ChatUtils;
+import net.minecraft.network.chat.Component;
 
+// Команда чата. Корень: .addoncmd, подкоманда: .addoncmd say <текст>, алиас: .acmd
 public class CustomAddonCommand extends Command {
+
     public CustomAddonCommand() {
-        super("addoncmd", "Пример команды из внешнего аддона.", "acmd");
+        super("addoncmd");
+        setAliases("acmd");
     }
 
     @Override
-    public void execute(String[] args) {
-        ChatHelper.sendMessage(Text.literal("§a[ExampleAddon] Команда аддона успешно выполнена!"));
-        if (args.length > 0) {
-            ChatHelper.sendMessage(Text.literal("§7Переданные аргументы: §e" + String.join(", ", args)));
-        }
+    @SuppressWarnings("unchecked")
+    public void exec(LiteralArgumentBuilder<?> builder) {
+        LiteralArgumentBuilder<Object> root = (LiteralArgumentBuilder<Object>) builder;
+
+        root.executes(ctx -> {
+            reply("команда аддона выполнена, напиши .addoncmd say <текст>");
+            return 1;
+        });
+
+        root.then(literal("say")
+            .then(argument("text", StringArgumentType.greedyString()).executes(ctx -> {
+                String text = StringArgumentType.getString(ctx, "text");
+                reply("ты написал: " + text);
+                return 1;
+            })));
+    }
+
+    private void reply(String text) {
+        ChatUtils.printChat(Component.literal(text), ChatUtils.createSignature(-1));
     }
 }

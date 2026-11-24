@@ -1,18 +1,17 @@
 {
   "schemaVersion": 1,
   "id": "example-addon",
-  "version": "1.0.0",
+  "version": "${version}",
   "name": "Example Addon",
-  "description": "A reference addon template demonstrating custom modules, commands, and events for Collective Client.",
+  "description": "Пример аддона для Collective Client: модуль, команда и события.",
   "authors": [
-    "anvres56"
+    "YourName"
   ],
   "contact": {
-    "homepage": "https://github.com/anvres56/collective-addon-template",
-    "sources": "https://github.com/anvres56/collective-addon-template"
+    "homepage": "https://github.com/sql2b2t/collective-addon-template",
+    "sources": "https://github.com/sql2b2t/collective-addon-template"
   },
   "license": "MIT",
-  "icon": "assets/example-addon/icon.png",
   "environment": "client",
   "entrypoints": {
     "collective": [
@@ -22,6 +21,7 @@
   "depends": {
     "fabricloader": ">=0.16.0",
     "minecraft": "~1.21.11",
-    "java": ">=21"
+    "java": ">=21",
+    "collective": "*"
   }
 }

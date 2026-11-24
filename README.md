@@ -1,191 +1,160 @@
-# Collective Client — Addon Template & Documentation
+# Collective Client — шаблон аддона
 
-Официальный шаблон и подробное руководство по разработке аддонов для **Collective Client** (Minecraft 1.21.11 Fabric).
+collective client - клиент для копий 2b2t (Minecraft 1.21.11, Fabric).
+Аддон - это обычный Fabric-мод с точкой входа `collective`: он добавляет
+в клиент свои модули, команды и обработчики событий.
 
-Система аддонов Collective спроектирована как эволюция архитектуры Meteor Client:
-- **Двойная загрузка**:
-  1. **Fabric Mod Entrypoint** — аддон упаковывается как стандартный мод Fabric с точкой входа `"collective"`.
-  2. **Динамическая загрузка JAR** — аддон можно просто поместить в папку `.minecraft/collective/addons/`, и клиент подгрузит его на лету через изолированный URLClassLoader без перезапуска лаунчера!
-- **Автоматическая регистрация** модулей, вкладок, команд и настроек.
-- **Поддержка рефлексии и событийной шины `@EventHandler`**.
+Загрузка двумя способами:
+1. jar в папку `mods/` вместе с клиентом;
+2. jar в папку `.minecraft/collective/addons/` и команда `.addon reload`
+   в игре (без перезапуска).
 
----
-
-## 📁 Структура Проекта
+## Структура
 
 ```text
 collective-addon-template/
-├── build.gradle                               # Конфигурация сборки Loom Fabric
-├── settings.gradle                            # Настройки Gradle
+├── build.gradle                    сборка (loom, Mojang-маппинги)
+├── settings.gradle
+├── gradle.properties               здесь указан путь к JDK 25 для Gradle
 ├── libs/
-│   └── collective-dev.jar                     # API библиотека Collective Client
-├── src/
-│   └── main/
-│       ├── java/
-│       │   └── com/example/addon/
-│       │       ├── ExampleAddon.java          # Главный класс аддона (точка входа)
-│       │       ├── CustomAddonModule.java     # Пример кастомного модуля
-│       │       └── CustomAddonCommand.java    # Пример кастомной команды чата
-│       └── resources/
-│           └── fabric.mod.json                # Манифест мода Fabric
+│   └── collective-dev.jar          API клиента (dev-сборка)
+├── src/main/java/com/example/addon/
+│   ├── ExampleAddon.java           точка входа
+│   ├── CustomAddonModule.java      пример модуля
+│   └── CustomAddonCommand.java     пример команды
+└── src/main/resources/
+    └── fabric.mod.json             манифест, entrypoint "collective"
 ```
 
----
+## Сборка
 
-## 🚀 Быстрый старт
+Нужен JDK 25 для запуска Gradle (требование fabric-loom 1.18),
+компиляция идёт под Java 21. Путь к JDK 25 задается в `gradle.properties`
+(строка `org.gradle.java.home`), поправь его под свою систему.
 
-### 1. Клонирование репозитория
 ```bash
-git clone https://github.com/anvres56/collective-addon-template.git my-collective-addon
+git clone https://github.com/sql2b2t/collective-addon-template.git my-collective-addon
 cd my-collective-addon
-```
-
-### 2. Сборка аддона
-```bash
 ./gradlew build
 ```
-Собранный файл будет находиться в директории `build/libs/collective-example-addon-1.0.0.jar`.
 
-### 3. Установка аддона
-У вас есть два равноценных способа:
-1. **Как обычный мод**: поместите `.jar` в папку `.minecraft/mods/` вместе с Collective Client.
-2. **Через папку аддонов клиента**: поместите `.jar` в `.minecraft/collective/addons/`. В игре выполните команду:
-   ```
-   .addon reload
-   ```
+Готовый jar появится в `build/libs/collective-example-addon-1.0.0.jar`.
 
----
+### Обновление API клиента
 
-## 🛠 Создание своего Аддона: Руководство
+`libs/collective-dev.jar` - это dev-сборка клиента. После обновления клиента
+пересобери его и скопируй свежий jar:
 
-### 1. Главный класс (`CollectiveAddon`)
-Создайте класс, расширяющий `CollectiveAddon`, и добавьте аннотацию `@AddonInfo`:
+```bash
+cd collective-client && ./gradlew build
+cp build/devlibs/collective-*-dev.jar ../collective-addon-template/libs/collective-dev.jar
+```
+
+## Примеры кода
+
+### Точка входа
 
 ```java
 package com.example.addon;
 
-import me.collective.addon.CollectiveAddon;
 import me.collective.addon.AddonInfo;
+import me.collective.addon.CollectiveAddon;
 
 @AddonInfo(
-    name = "My Super Addon",
+    name = "My Addon",
     version = "1.0.0",
     author = "YourName",
-    description = "Крутые функции для Collective Client!",
+    description = "мой аддон",
     website = "https://github.com/YourName/my-addon"
 )
 public class MyAddon extends CollectiveAddon {
 
     @Override
     public void onInitialize() {
-        // Регистрация модулей
         registerModule(new CustomAddonModule());
-
-        // Регистрация команд
         registerCommand(new CustomAddonCommand());
     }
 }
 ```
 
-### 2. Создание Кастомного Модуля (`Module`)
-Все модули наследуются от `me.collective.module.Module`:
+### Модуль
+
+Модули наследуют `me.collective.client.modules.Module`, события приходят,
+пока модуль включен. В чат пишут через `ChatUtils.printChat`.
 
 ```java
-package com.example.addon;
-
-import me.collective.category.Category;
-import me.collective.event.EventHandler;
-import me.collective.event.events.TickEvent;
-import me.collective.module.Module;
-import me.collective.setting.BooleanSetting;
-import me.collective.setting.NumberSetting;
-
 public class CustomAddonModule extends Module {
-    // Настройки отображаются в ClickGUI автоматически
     public final BooleanSetting chatNotify = add(new BooleanSetting("ChatNotify", true));
-    public final NumberSetting tickInterval = add(new NumberSetting("Interval", 20.0, 1.0, 100.0, 1.0));
-
-    private int timer = 0;
+    public final NumberSetting<Double> tickInterval =
+            add(new NumberSetting<>("Interval", 20.0, 1.0, 100.0));
 
     public CustomAddonModule() {
-        super("AddonModule", "Описание модуля в интерфейсе", Category.MISC);
-    }
-
-    @Override
-    public void onEnable() {
-        info("Модуль включен!");
-        timer = 0;
-    }
-
-    @Override
-    public void onDisable() {
-        info("Модуль выключен!");
+        super("AddonModule", "описание модуля", ModuleCategory.MISC);
     }
 
     @EventHandler
-    private void onTick(TickEvent.Pre event) {
+    private void onTick(MinecraftTickEvent event) {
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-
-        timer++;
-        if (timer >= tickInterval.getIntValue()) {
-            timer = 0;
-            if (chatNotify.getValue()) {
-                info("Здоровье игрока: §a%.1f", mc.player.getHealth());
-            }
+        if (chatNotify.getValue()) {
+            ChatUtils.printChat(Component.literal("здоровье: " + mc.player.getHealth()),
+                    ChatUtils.moduleSignature(this));
         }
     }
 }
 ```
 
-### 3. Создание Кастомной Команды (`Command`)
+`NumberSetting` принимает имя, значение, минимум и максимум. Пятый параметр
+конструктора - `Predicate` видимости, а не шаг.
+
+### Команда
+
+Команды наследуют `me.collective.client.commands.Command`, тело - в методе
+`exec`. Алиасы задаются через `setAliases`.
+
 ```java
-package com.example.addon;
-
-import me.collective.command.ChatHelper;
-import me.collective.command.Command;
-import net.minecraft.text.Text;
-
 public class CustomAddonCommand extends Command {
     public CustomAddonCommand() {
-        super("addoncmd", "Описание команды аддона", "acmd");
+        super("addoncmd");
+        setAliases("acmd");
     }
 
     @Override
-    public void execute(String[] args) {
-        ChatHelper.sendMessage(Text.literal("§a[MyAddon] Команда успешно вызвана!"));
-        if (args.length > 0) {
-            ChatHelper.sendMessage(Text.literal("§7Аргументы: §e" + String.join(", ", args)));
-        }
+    @SuppressWarnings("unchecked")
+    public void exec(LiteralArgumentBuilder<?> builder) {
+        LiteralArgumentBuilder<Object> root = (LiteralArgumentBuilder<Object>) builder;
+        root.executes(ctx -> {
+            ChatUtils.printChat(Component.literal("команда выполнена"),
+                    ChatUtils.createSignature(-1));
+            return 1;
+        });
     }
 }
 ```
 
-### 4. Настройка `fabric.mod.json`
-В блоке `entrypoints` укажите точку входа `"collective"`:
+### fabric.mod.json
+
+Точка входа аддона - блок `entrypoints` с ключом `collective`:
 
 ```json
-{
-  "schemaVersion": 1,
-  "id": "my-addon",
-  "version": "1.0.0",
-  "name": "My Super Addon",
-  "entrypoints": {
-    "collective": [
-      "com.example.addon.MyAddon"
-    ]
-  }
+"entrypoints": {
+  "collective": [ "com.example.addon.MyAddon" ]
 }
 ```
 
----
+## Команды в игре
 
-## 🎮 Команды управления аддонами в игре
+| Команда | Что делает |
+|---|---|
+| `.addon list` | список загруженных аддонов |
+| `.addon load <jar>` | загрузить аддон из папки addons |
+| `.addon unload <имя>` | выгрузить аддон |
+| `.addon info <имя>` | подробности об аддоне |
+| `.addon sources` | открыть папку исходников аддонов |
+| `.addon build <имя>` | собрать исходник из collective/addons-src |
+| `.addon reload` | перезагрузить все аддоны |
+| `.addon folder` | открыть папку аддонов |
 
-- `.addon list` — Показывает все загруженные аддоны, их версии, авторов и описания.
-- `.addon reload` — Перезагружает и сканирует папку `.minecraft/collective/addons/`.
-- `.addon folder` — Открывает системную папку аддонов в проводнике.
+## Лицензия
 
----
-
-## 📄 Лицензия
-MIT License. Свободно для модификации и создания собственных дополнений.
+MIT.
